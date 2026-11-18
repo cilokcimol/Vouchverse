@@ -1,5 +1,5 @@
-// Human readable ABI for Kith. Matches contracts/contracts/Kith.sol.
-export const KITH_ABI = [
+// Human readable ABI for Vouchverse. Matches contracts/contracts/Vouchverse.sol.
+export const ABI = [
   'function join(string label, string bio, string skills, string endpoint)',
   'function updateProfile(string bio, string skills, string endpoint)',
   'function pulse(string status)',

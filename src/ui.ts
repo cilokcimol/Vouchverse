@@ -33,8 +33,7 @@ export const bnb = (x: string | number) => {
   return v.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')
 }
 
-export const KIND_COLORS = ['var(--linen)', 'var(--saffron)', 'var(--teal)', 'var(--madder)']
-export const KIND_HEX = [0xefe8dc, 0xf2a541, 0x3fb8a6, 0xe0634b]
+export const KIND_COLORS = ['var(--bone)', 'var(--honey)', 'var(--teal)', 'var(--ember)']
 export const kindChip = (k: number) => `<span class="kind" style="--kc:${KIND_COLORS[k] || KIND_COLORS[0]}">${VOUCH_KINDS[k] || 'Trusted'}</span>`
 
 export function pulseClass(lastPulse: number) {
@@ -45,7 +44,7 @@ export function pulseClass(lastPulse: number) {
   return ''
 }
 
-/** A woven glyph unique to each Agent ID: threads over and under, colored from the token id. */
+/** A honeycomb glyph unique to each Agent ID: lit and dark cells drawn from the token id, mirrored like a crest. */
 export function glyph(seed: string) {
   let h = 0n
   try {
@@ -54,25 +53,38 @@ export function glyph(seed: string) {
     for (const ch of seed) h = (h * 131n + BigInt(ch.charCodeAt(0))) % (1n << 255n)
   }
   const bits = (i: number, n: number) => Number((h >> BigInt(i)) & ((1n << BigInt(n)) - 1n))
-  const pal = ['#efe8dc', '#f2a541', '#3fb8a6', '#e0634b', '#9b8fd6']
+  const pal = ['#ffc233', '#ffe08a', '#ff9d00', '#f4efe6', '#ff7a45']
   const a = pal[bits(0, 3) % 5]
   let b = pal[bits(3, 3) % 5]
   if (b === a) b = pal[(bits(3, 3) + 2) % 5]
-  const g = 6
-  const cell = 64 / g
-  let out = `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="64" height="64" fill="#1f2860"/>`
-  for (let y = 0; y < g; y++)
-    for (let x = 0; x < g; x++) {
-      const k = 8 + y * g + x
-      const over = (bits(k, 1) ^ ((x + y) & 1)) === 1
-      const on = bits(k + 40, 2) !== 0
-      if (!on) continue
-      const px = x * cell
-      const py = y * cell
-      out += over
-        ? `<rect x="${px + 1}" y="${py + cell * 0.3}" width="${cell - 2}" height="${cell * 0.4}" rx="${cell * 0.2}" fill="${a}"/>`
-        : `<rect x="${px + cell * 0.3}" y="${py + 1}" width="${cell * 0.4}" height="${cell - 2}" rx="${cell * 0.2}" fill="${b}"/>`
+  const R = 6.2
+  const hexPath = (cx: number, cy: number, r: number) => {
+    let d = ''
+    for (let k = 0; k < 6; k++) {
+      const ang = (Math.PI / 3) * k + Math.PI / 6
+      d += `${k ? 'L' : 'M'}${(cx + Math.cos(ang) * r).toFixed(2)} ${(cy + Math.sin(ang) * r).toFixed(2)}`
     }
+    return d + 'Z'
+  }
+  let out = `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="64" height="64" fill="#141417"/>`
+  const w = R * Math.sqrt(3)
+  let k = 8
+  for (let row = 0; row < 6; row++) {
+    const cols = 3
+    for (let col = 0; col < cols; col++) {
+      const on = bits(k, 2)
+      const tone = bits(k + 60, 1) ? a : b
+      k += 3
+      const cy = 7 + row * R * 1.5
+      const off = row % 2 ? w / 2 : 0
+      for (const mirror of [false, true]) {
+        const x = 32 + (mirror ? -1 : 1) * (off + col * w + (row % 2 ? 0 : w / 2)) - (mirror ? 0 : 0)
+        if (on === 0) out += `<path d="${hexPath(x, cy, R - 1)}" fill="#22222a"/>`
+        else out += `<path d="${hexPath(x, cy, R - 1)}" fill="${tone}" opacity="${on === 1 ? 0.45 : 1}"/>`
+        if (col === 0 && row % 2 === 1 && mirror) break
+      }
+    }
+  }
   return out + '</svg>'
 }
 
@@ -99,29 +111,29 @@ export async function copy(text: string, what = 'Copied') {
   toast(what)
 }
 
-/** Natural language a user can give an agent that has the Kith skill installed. */
+/** Natural language a user can give an agent that has the Vouchverse skill installed. */
 function skillPrompt(input: ActionInput, built: BuiltAction) {
   const who = input.toLabel ? `${input.toLabel}.ai` : input.to
   const q = (s?: string) => (s ? ` "${s}"` : '')
   switch (input.action) {
     case 'join':
-      return `Use the Kith skill to join Kith as ${input.label}.ai. Bio:${q(input.bio)}. Skills: ${input.skills || 'none'}.${input.endpoint ? ` Endpoint: ${input.endpoint}.` : ''}`
+      return `Use the Vouchverse skill to join Vouchverse as ${input.label}.ai. Bio:${q(input.bio)}. Skills: ${input.skills || 'none'}.${input.endpoint ? ` Endpoint: ${input.endpoint}.` : ''}`
     case 'vouch':
-      return `Use the Kith skill to vouch for ${who} as ${VOUCH_KINDS[input.kind || 0].toLowerCase()}.${input.note ? ` Note:${q(input.note)}.` : ''}`
+      return `Use the Vouchverse skill to vouch for ${who} as ${VOUCH_KINDS[input.kind || 0].toLowerCase()}.${input.note ? ` Note:${q(input.note)}.` : ''}`
     case 'tip':
-      return `Use the Kith skill to tip ${input.amount} BNB to ${who}.${input.note ? ` Note:${q(input.note)}.` : ''}`
+      return `Use the Vouchverse skill to tip ${input.amount} BNB to ${who}.${input.note ? ` Note:${q(input.note)}.` : ''}`
     case 'pulse':
-      return `Use the Kith skill to send a pulse with the status${q(input.status)}.`
+      return `Use the Vouchverse skill to send a pulse with the status${q(input.status)}.`
     case 'post':
-      return `Use the Kith skill to post in Kith circle ${input.id}:${q(input.text)}.`
+      return `Use the Vouchverse skill to post in Vouchverse circle ${input.id}:${q(input.text)}.`
     case 'postJob':
-      return `Use the Kith skill to post a job "${input.title}" with ${input.amount} BNB in escrow, open to agents with at least ${input.minVouches || 0} vouches, due in ${input.deadlineDays || 7} days. Brief:${q(input.brief)}.`
+      return `Use the Vouchverse skill to post a job "${input.title}" with ${input.amount} BNB in escrow, open to agents with at least ${input.minVouches || 0} vouches, due in ${input.deadlineDays || 7} days. Brief:${q(input.brief)}.`
     case 'submitJob':
-      return `Use the Kith skill to submit my work for Kith job ${input.id}:${q(input.result)}.`
+      return `Use the Vouchverse skill to submit my work for Vouchverse job ${input.id}:${q(input.result)}.`
     case 'createCircle':
-      return `Use the Kith skill to create a Kith circle called "${input.name}" that opens at ${input.minVouches || 0} vouches. About:${q(input.about)}.`
+      return `Use the Vouchverse skill to create a Vouchverse circle called "${input.name}" that opens at ${input.minVouches || 0} vouches. About:${q(input.about)}.`
     default:
-      return `Use the Kith skill to ${built.summary.charAt(0).toLowerCase()}${built.summary.slice(1)}.`
+      return `Use the Vouchverse skill to ${built.summary.charAt(0).toLowerCase()}${built.summary.slice(1)}.`
   }
 }
 
@@ -144,7 +156,7 @@ export function compose(title: string, input: ActionInput, fields: Field[] = [])
     }
     const body = built
       ? tab === 'say'
-        ? `<p class="small muted">With the Kith skill installed, say this to your agent. It will preview the call, show you the risks and wait for your yes.</p>
+        ? `<p class="small muted">With the Vouchverse skill installed, say this to your agent. It will preview the call, show you the risks and wait for your yes.</p>
            <div class="code" id="out">${esc(skillPrompt(merged, built))}</div>`
         : `<p class="small muted">No skill needed. Give this to any agent with the Binance Agentic Wallet in Developer Mode, or run the command yourself.</p>
            <div class="code" id="out">${esc(built.prompt)}</div>

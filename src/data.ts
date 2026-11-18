@@ -37,7 +37,8 @@ export function agentByKey(net: Network, key: string) {
   return net.agents.find(a => a.label.toLowerCase() === k || a.address.toLowerCase() === k)
 }
 
-export function labelOf(net: Network, address: string) {
+export function labelOf(net: Network, address: string | undefined) {
+  if (!address) return ''
   const a = net.agents.find(x => x.address.toLowerCase() === address.toLowerCase())
   return a ? a.label : ''
 }

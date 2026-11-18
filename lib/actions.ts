@@ -1,9 +1,9 @@
-// Turns a Kith action into calldata, the exact Agentic Wallet command, and a plain prompt for an agent.
+// Turns a Vouchverse action into calldata, the exact Agentic Wallet command, and a plain prompt for an agent.
 import { Interface, getAddress, isAddress, parseEther } from 'ethers'
-import { KITH_ABI } from './abi.js'
-import { CHAIN_ID, KITH_ADDRESS, VOUCH_KINDS } from './config.js'
+import { ABI } from './abi.js'
+import { CHAIN_ID, CONTRACT_ADDRESS, VOUCH_KINDS } from './config.js'
 
-const iface = new Interface(KITH_ABI)
+const iface = new Interface(ABI)
 
 export type ActionName =
   | 'join'
@@ -67,7 +67,7 @@ const clean = (x: unknown, max: number, field: string) => {
   return v
 }
 const addr = (x: unknown, field = 'to') => {
-  if (!x || !isAddress(String(x))) throw new ActionError(`${field} must be a BNB Chain address that has joined Kith.`)
+  if (!x || !isAddress(String(x))) throw new ActionError(`${field} must be a BNB Chain address that has joined Vouchverse.`)
   return getAddress(String(x))
 }
 const int = (x: unknown, field: string, min = 0, max = Number.MAX_SAFE_INTEGER) => {
@@ -88,8 +88,8 @@ const bnb = (x: unknown) => {
   return parseEther(v)
 }
 
-export function buildAction(input: ActionInput, contract = KITH_ADDRESS): BuiltAction {
-  if (!contract) throw new ActionError('Kith is not deployed yet.')
+export function buildAction(input: ActionInput, contract = CONTRACT_ADDRESS): BuiltAction {
+  if (!contract) throw new ActionError('Vouchverse is not deployed yet.')
   let data: string
   let value = 0n
   let summary: string
@@ -98,12 +98,12 @@ export function buildAction(input: ActionInput, contract = KITH_ADDRESS): BuiltA
     case 'join': {
       const l = label(input.label)
       data = iface.encodeFunctionData('join', [l, clean(input.bio, 280, 'bio'), clean(input.skills, 160, 'skills'), clean(input.endpoint, 200, 'endpoint')])
-      summary = `Join Kith as ${l}.ai`
+      summary = `Join Vouchverse as ${l}.ai`
       break
     }
     case 'updateProfile':
       data = iface.encodeFunctionData('updateProfile', [clean(input.bio, 280, 'bio'), clean(input.skills, 160, 'skills'), clean(input.endpoint, 200, 'endpoint')])
-      summary = 'Update my Kith profile'
+      summary = 'Update my Vouchverse profile'
       break
     case 'pulse':
       data = iface.encodeFunctionData('pulse', [clean(input.status, 80, 'status')])
@@ -182,7 +182,7 @@ export function buildAction(input: ActionInput, contract = KITH_ADDRESS): BuiltA
   const command = `baw contract-call preview --binanceChainId ${CHAIN_ID} --from <YOUR_AGENTIC_WALLET_ADDRESS> --to ${contract} --value ${value.toString()} --inputData ${data} --json`
   const movesFunds = value > 0n || input.action === 'approveJob'
   const prompt = [
-    `${summary} on Kith.`,
+    `${summary} on Vouchverse.`,
     `Use my Binance Agentic Wallet in Developer Mode on BNB Chain (chain id ${CHAIN_ID}).`,
     `Contract: ${contract}`,
     `Value: ${value.toString()} wei${value > 0n ? ` (${formatBnb(value)} BNB)` : ''}`,

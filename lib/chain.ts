@@ -1,7 +1,7 @@
-// Reads the whole Kith network from BNB Chain with batched view calls, and scores trust.
+// Reads the whole Vouchverse network from BNB Chain with batched view calls, and scores trust.
 import { Contract, JsonRpcProvider, formatEther, keccak256, toUtf8Bytes } from 'ethers'
-import { KITH_ABI, AGENT_ID_ABI } from './abi.js'
-import { AGENT_ID_ADDRESS, CHAIN_ID, KITH_ADDRESS, RPC_URLS, VOUCH_KINDS } from './config.js'
+import { ABI, AGENT_ID_ABI } from './abi.js'
+import { AGENT_ID_ADDRESS, CHAIN_ID, CONTRACT_ADDRESS, RPC_URLS, VOUCH_KINDS } from './config.js'
 
 export interface Agent {
   address: string
@@ -79,8 +79,8 @@ export function getProvider() {
   return provider
 }
 
-export function kith(address = KITH_ADDRESS) {
-  return new Contract(address, KITH_ABI, getProvider())
+export function registry(address = CONTRACT_ADDRESS) {
+  return new Contract(address, ABI, getProvider())
 }
 
 export function agentIdContract() {
@@ -137,8 +137,8 @@ export function scoreTrust(agents: Agent[], edges: Edge[]) {
   ;[...agents].sort((x, y) => y.score - x.score || y.vouchesIn - x.vouchesIn).forEach((a, i) => (a.rank = i + 1))
 }
 
-export async function loadNetwork(address = KITH_ADDRESS): Promise<Network> {
-  const c = kith(address)
+export async function loadNetwork(address = CONTRACT_ADDRESS): Promise<Network> {
+  const c = registry(address)
   const p = getProvider()
   const [block, memberCount, circleCount, jobCount] = await Promise.all([
     p.getBlockNumber(),
@@ -224,8 +224,8 @@ export async function loadNetwork(address = KITH_ADDRESS): Promise<Network> {
   }
 }
 
-export async function loadPosts(circleId: number, address = KITH_ADDRESS) {
-  const c = kith(address)
+export async function loadPosts(circleId: number, address = CONTRACT_ADDRESS) {
+  const c = registry(address)
   const count = n(await c.postCount(circleId))
   const start = Math.max(0, count - 100)
   const rows = (await c.postsOf(circleId, start, 100)) as { author: string; at: bigint; text: string }[]
@@ -233,8 +233,8 @@ export async function loadPosts(circleId: number, address = KITH_ADDRESS) {
 }
 
 /** Recent activity straight from the event log, newest first. */
-export async function loadActivity(blocks = 40000, address = KITH_ADDRESS) {
-  const c = kith(address)
+export async function loadActivity(blocks = 40000, address = CONTRACT_ADDRESS) {
+  const c = registry(address)
   const p = getProvider()
   const head = await p.getBlockNumber()
   const from = Math.max(0, head - blocks)

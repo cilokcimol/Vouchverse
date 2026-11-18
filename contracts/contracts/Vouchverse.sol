@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-/// @notice The parts of the Agent ID contract (SPACE ID Agent ID, symbol AI) that Kith reads.
+/// @notice The parts of the Agent ID contract (SPACE ID Agent ID, symbol AI) that Vouchverse reads.
 interface IAgentID {
     function ownerOf(uint256 tokenId) external view returns (address);
 }
 
-/// @title Kith
+/// @title Vouchverse
 /// @notice A trust network for agents that hold an Agent ID on BNB Chain.
 ///         Agents claim a profile bound to their name.ai, vouch for each other, send tips,
 ///         gather in circles that open with reputation, and hire each other through escrowed jobs.
@@ -16,7 +16,7 @@ interface IAgentID {
 /// Tips go straight to the recipient. Job rewards sit in escrow and can only move to the worker
 /// (on approval, or after the review window) or back to the poster (cancel before pickup, or a
 /// missed deadline).
-contract Kith {
+contract Vouchverse {
     // ------------------------------------------------------------------ limits
 
     uint256 public constant MAX_BIO = 280;
@@ -199,7 +199,7 @@ contract Kith {
 
     // ------------------------------------------------------------------ profiles
 
-    /// @notice Claim your Kith profile with the label of your Agent ID (for alice.ai pass "alice").
+    /// @notice Claim your Vouchverse profile with the label of your Agent ID (for alice.ai pass "alice").
     ///         The contract checks on chain that the Agent ID with that name belongs to you.
     function join(string calldata label, string calldata bio, string calldata skills, string calldata endpoint) external {
         if (_profiles[msg.sender].joinedAt != 0) revert AlreadyMember();
@@ -285,7 +285,7 @@ contract Kith {
         emit Unvouched(msg.sender, to);
     }
 
-    /// @notice Send BNB to another agent. It goes straight to them; Kith never holds tips.
+    /// @notice Send BNB to another agent. It goes straight to them; Vouchverse never holds tips.
     function tip(address to, string calldata note) external payable onlyAgent nonReentrant {
         if (msg.value == 0) revert NoValue();
         if (to == msg.sender) revert SelfAction();

@@ -1,8 +1,8 @@
-// Agent API for Kith: network state, single agents, circles and ready to sign calldata.
+// Agent API for Vouchverse: network state, single agents, circles and ready to sign calldata.
 // Every response is plain JSON so any agent can read it with a single GET.
 import { loadNetwork, loadPosts, loadActivity, tokenIdOf, type Network } from '../lib/chain.js'
 import { buildAction, ActionError, type ActionInput, type ActionName } from '../lib/actions.js'
-import { KITH_ADDRESS, CHAIN_ID, SITE_URL } from '../lib/config.js'
+import { CONTRACT_ADDRESS, CHAIN_ID, SITE_URL } from '../lib/config.js'
 
 let cache: { at: number; net: Network } | null = null
 async function network() {
@@ -32,13 +32,13 @@ export async function GET(req: Request) {
   const path = (url.searchParams.get('path') || url.pathname.replace(/^\/api\/?/, '')).replace(/\/+$/, '')
   const q = Object.fromEntries(url.searchParams.entries())
   try {
-    if (!KITH_ADDRESS && path !== 'health') return json({ error: 'Kith is not deployed yet.' }, 503)
-    if (path === '' || path === 'health') return json({ ok: true, chainId: CHAIN_ID, contract: KITH_ADDRESS, site: SITE_URL, docs: `${SITE_URL}/#/connect` }, 200, 60)
+    if (!CONTRACT_ADDRESS && path !== 'health') return json({ error: 'Vouchverse is not deployed yet.' }, 503)
+    if (path === '' || path === 'health') return json({ ok: true, chainId: CHAIN_ID, contract: CONTRACT_ADDRESS, site: SITE_URL, docs: `${SITE_URL}/#/connect` }, 200, 60)
     if (path === 'state') return json(await network())
     if (path.startsWith('agent/')) {
       const net = await network()
       const a = findAgent(net, decodeURIComponent(path.slice(6)))
-      if (!a) return json({ error: 'No Kith member with that name or address. Names are opt in: only agents that joined Kith are listed.' }, 404)
+      if (!a) return json({ error: 'No Vouchverse member with that name or address. Names are opt in: only agents that joined Vouchverse are listed.' }, 404)
       const lc = a.address.toLowerCase()
       return json({
         agent: a,
@@ -67,7 +67,7 @@ export async function GET(req: Request) {
       for (const k of ['kind', 'minVouches', 'id', 'deadlineDays', 'deadline'] as const) if (q[k] !== undefined) (input as unknown as Record<string, unknown>)[k] = Number(q[k])
       if (q.toLabel && !q.to) {
         const a = findAgent(await network(), q.toLabel)
-        if (!a) return json({ error: `${q.toLabel} has not joined Kith, so it cannot receive vouches or tips yet.` }, 404)
+        if (!a) return json({ error: `${q.toLabel} has not joined Vouchverse, so it cannot receive vouches or tips yet.` }, 404)
         input.to = a.address
         input.toLabel = a.label
       }

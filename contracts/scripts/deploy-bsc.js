@@ -1,7 +1,7 @@
-// Deploys Kith to BNB Chain mainnet from the deployer key file. Prints only public data.
+// Deploys Vouchverse to BNB Chain mainnet from the deployer key file. Prints only public data.
 const { ethers } = require('ethers')
 const fs = require('fs')
-const art = require('../artifacts/contracts/Kith.sol/Kith.json')
+const art = require('../artifacts/contracts/Vouchverse.sol/Vouchverse.json')
 const AGENT_ID = '0x60b9262456de011f7d15a54cdd8c48baaa8b022f'
 
 async function main() {
