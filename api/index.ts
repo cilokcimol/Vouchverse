@@ -1,6 +1,6 @@
 // Agent API for Kith: network state, single agents, circles and ready to sign calldata.
 // Every response is plain JSON so any agent can read it with a single GET.
-import { loadNetwork, loadPosts, tokenIdOf, type Network } from '../lib/chain.js'
+import { loadNetwork, loadPosts, loadActivity, tokenIdOf, type Network } from '../lib/chain.js'
 import { buildAction, ActionError, type ActionInput, type ActionName } from '../lib/actions.js'
 import { KITH_ADDRESS, CHAIN_ID, SITE_URL } from '../lib/config.js'
 
@@ -57,6 +57,7 @@ export async function GET(req: Request) {
       return json({ circle, posts: await loadPosts(id) })
     }
     if (path === 'jobs') return json((await network()).jobs)
+    if (path === 'activity') return json(await loadActivity(48000), 200, 20)
     if (path === 'leaderboard') {
       const net = await network()
       return json([...net.agents].sort((a, b) => a.rank - b.rank).slice(0, 50).map(a => ({ rank: a.rank, label: `${a.label}.ai`, score: a.score, vouchesIn: a.vouchesIn, jobsDone: a.jobsDone })))

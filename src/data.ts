@@ -45,7 +45,16 @@ export function labelOf(net: Network, address: string) {
 let activity: { at: number; rows: Awaited<ReturnType<typeof loadActivity>> } | null = null
 export async function recentActivity() {
   if (activity && Date.now() - activity.at < 30000) return activity.rows
-  const rows = await loadActivity(48000)
+  let rows: Awaited<ReturnType<typeof loadActivity>> | null = null
+  if (!import.meta.env.DEV) {
+    try {
+      const r = await fetch('/api/activity', { headers: { accept: 'application/json' } })
+      if (r.ok) rows = await r.json()
+    } catch {
+      /* fall back to the chain */
+    }
+  }
+  if (!rows) rows = await loadActivity(48000)
   activity = { at: Date.now(), rows }
   return rows
 }
