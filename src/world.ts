@@ -81,6 +81,7 @@ export class World {
   private heightOf = new Map<number, number>()
   private alive: number[] = []
   private ringsGroup = new THREE.Group()
+  private firstCell = new THREE.Group()
   private jobCubes = new THREE.Group()
   private swarm!: THREE.Points
   private swarmSeeds!: Float32Array
@@ -357,6 +358,17 @@ export class World {
     vault.add(tip)
     this.onSurface(vault, LANDMARKS.contract)
     this.landmarkGroups.contract = vault
+
+    // The first cell: an outline of a pillar waiting at the heart of the Comb while nobody has joined.
+    const ghost = new THREE.CylinderGeometry(this.tileR, this.tileR, 0.22, 6, 1, true)
+    ghost.translate(0, 0.11, 0)
+    const wire = new THREE.LineSegments(new THREE.EdgesGeometry(ghost), new THREE.LineBasicMaterial({ color: new THREE.Color(1, 0.75, 0.2).multiplyScalar(1.8), toneMapped: false, transparent: true, opacity: 0.9 }))
+    wire.name = 'wire'
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(this.tileR * 0.85, 6).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.7, 0.15).multiplyScalar(1.4), toneMapped: false, transparent: true, opacity: 0.6 }))
+    floor.name = 'floor'
+    floor.position.y = 0.002
+    this.firstCell.add(wire, floor)
+    this.onSurface(this.firstCell, LANDMARKS.agents, 0.02)
   }
 
   private setRings(n: number, sizes: number[]) {
@@ -447,6 +459,7 @@ export class World {
       this.tileOf.set(a.address.toLowerCase(), tile)
     })
     this.layoutCells()
+    this.firstCell.visible = agents.length === 0
     if (this.arcs) {
       this.planet.remove(this.arcs)
       this.arcs.geometry.dispose()
@@ -640,6 +653,11 @@ export class World {
     if (tip) {
       tip.rotation.y = t * 0.9
       tip.position.y = 0.36 + Math.sin(t * 1.6) * 0.01
+    }
+    if (this.firstCell.visible) {
+      const k = 0.5 + Math.sin(t * 2.2) * 0.4
+      ;((this.firstCell.getObjectByName('wire') as THREE.LineSegments).material as THREE.LineBasicMaterial).opacity = 0.35 + k * 0.6
+      ;((this.firstCell.getObjectByName('floor') as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = 0.2 + k * 0.5
     }
     this.atmo.uniforms.uPow.value = 2.4 + Math.sin(t * 0.7) * 0.2
 
