@@ -327,9 +327,7 @@ textarea.input { resize: vertical; min-height: 84px; }
 .foot-links a { color: var(--linen-2); text-decoration: none; }
 .foot-links a:hover { color: var(--linen); }
 
-/* ---------- reveal ---------- */
-.reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.8s ease, transform 0.8s ease; }
-.reveal.in { opacity: 1; transform: none; }
+/* sections render immediately; the loom is the one moving element */
 
 @media (max-width: 980px) {
   .split, .profile { grid-template-columns: 1fr; }
