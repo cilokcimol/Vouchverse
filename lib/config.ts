@@ -15,7 +15,7 @@ export const KITH_DEPLOY_BLOCK = Number(env.VITE_KITH_BLOCK || 134378242)
 /** SPACE ID Agent ID (symbol AI), ERC 721, non transferable. Token id = keccak256(label). */
 export const AGENT_ID_ADDRESS = env.VITE_AGENT_ID || '0x60b9262456de011f7d15a54cdd8c48baaa8b022f'
 
-export const SITE_URL = env.VITE_SITE || 'https://kith.vercel.app'
+export const SITE_URL = env.VITE_SITE || 'https://kith-agents.vercel.app'
 export const EXPLORER = 'https://bscscan.com'
 
 export const VOUCH_KINDS = ['Trusted', 'Skilled', 'Reliable', 'Helpful'] as const

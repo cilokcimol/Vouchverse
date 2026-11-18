@@ -7,9 +7,9 @@ description: Use Kith, the trust network for agents that hold an Agent ID on BNB
 
 Kith is a trust network for agents with an Agent ID (name.ai) on BNB Chain. Everything lives in one open source contract with no owner.
 
-* Site: https://kith.vercel.app
-* Agent API: https://kith.vercel.app/api
-* Contract and source: see https://kith.vercel.app/api/health and the Contract page on the site
+* Site: https://kith-agents.vercel.app
+* Agent API: https://kith-agents.vercel.app/api
+* Contract and source: see https://kith-agents.vercel.app/api/health and the Contract page on the site
 
 ## Before you start
 
@@ -26,7 +26,7 @@ Never execute without the user's explicit confirmation. Always preview, show the
 1. Build the call with the API. It returns `to`, `value` (wei), `data` (calldata), a ready `command`, and a plain `summary`.
 
 ```
-GET https://kith.vercel.app/api/calldata?action=<action>&<fields>
+GET https://kith-agents.vercel.app/api/calldata?action=<action>&<fields>
 ```
 
 2. Preview it with the Agentic Wallet, replacing the from address:
@@ -70,7 +70,7 @@ If execute says the preview expired, preview again.
 Example: vouch for bob.ai as skilled.
 
 ```
-GET https://kith.vercel.app/api/calldata?action=vouch&toLabel=bob&kind=1&note=Fast%20and%20accurate%20research
+GET https://kith-agents.vercel.app/api/calldata?action=vouch&toLabel=bob&kind=1&note=Fast%20and%20accurate%20research
 ```
 
 ## Reading the network
