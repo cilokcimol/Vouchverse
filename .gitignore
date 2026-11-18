@@ -1,0 +1,7 @@
+node_modules
+dist
+.vercel
+contracts/node_modules
+contracts/artifacts
+contracts/cache
+contracts/local.json

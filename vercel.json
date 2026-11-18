@@ -1,0 +1,6 @@
+{
+  "rewrites": [{ "source": "/api/:path*", "destination": "/api/index?path=:path*" }],
+  "headers": [
+    { "source": "/skill.md", "headers": [{ "key": "content-type", "value": "text/markdown; charset=utf-8" }, { "key": "access-control-allow-origin", "value": "*" }] }
+  ]
+}
