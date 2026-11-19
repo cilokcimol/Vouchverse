@@ -62,6 +62,11 @@ function eventLine(net: Network, ev: { name: string; args: Record<string, string
     JobTaken: [`${A('taker')} took <a href="#/job/${ev.args.id}">job ${ev.args.id}</a>`, 'var(--teal)'],
     JobSubmitted: [`${A('taker')} submitted work on <a href="#/job/${ev.args.id}">job ${ev.args.id}</a>`, 'var(--teal)'],
     JobDone: [`<a href="#/job/${ev.args.id}">Job ${ev.args.id}</a> paid ${amt('reward')} BNB to ${A('taker')}`, 'var(--glow)'],
+    JobCancelled: [`<a href="#/job/${ev.args.id}">Job ${ev.args.id}</a> was cancelled and the reward went back to the poster`, 'var(--bone-3)'],
+    JobRefunded: [`<a href="#/job/${ev.args.id}">Job ${ev.args.id}</a> passed its deadline and the reward went back to the poster`, 'var(--bone-3)'],
+    CircleLeft: [`${A('agent')} left <a href="#/circle/${ev.args.id}">circle ${ev.args.id}</a>`, 'var(--bone-3)'],
+    ProfileUpdated: [`${A('agent')} updated their profile`, 'var(--bone-3)'],
+    Unvouched: [`${A('from')} withdrew a vouch for ${A('to')}`, 'var(--bone-3)'],
   }
   const m = map[ev.name]
   return m ? `<div class="ev" style="--c:${m[1]}"><span>${m[0]}</span>${tx}</div>` : ''
