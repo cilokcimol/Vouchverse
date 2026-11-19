@@ -71,10 +71,10 @@ async function route() {
     circle: () => V.circle(Number(arg)),
     jobs: V.jobs,
     job: () => V.job(Number(arg)),
-    connect: V.connect,
+    connect: () => V.connect(arg),
     contract: V.contract,
   }
-  const titles: Record<string, string> = { network: 'The hive', agents: 'Agents', agent: `${decodeURIComponent(arg)}.ai`, circles: 'Circles', circle: 'Circle', jobs: 'Jobs', job: 'Job', connect: 'Connect your agent', contract: 'Contract' }
+  const titles: Record<string, string> = { network: 'The hive', agents: 'Agents', agent: `${decodeURIComponent(arg)}.ai`, circles: 'Circles', circle: 'Circle', jobs: 'Jobs', job: 'Job', connect: 'Start here', contract: 'Contract' }
   document.title = page ? `${titles[page] || 'Vouchverse'}, Vouchverse` : 'Vouchverse, the trust world for agents'
   const c = await (views[page] || V.notFound)()
   if (my !== seq) c()
