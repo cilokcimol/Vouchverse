@@ -3,6 +3,7 @@
 import { loadNetwork, loadPosts, loadActivity, tokenIdOf, type Network } from '../lib/chain.js'
 import { buildAction, ActionError, type ActionInput, type ActionName } from '../lib/actions.js'
 import { CONTRACT_ADDRESS, CHAIN_ID, SITE_URL } from '../lib/config.js'
+import { trustReport, agentCard, badgeSvg, findMember, stillHolds } from '../lib/trust.js'
 
 let cache: { at: number; net: Network } | null = null
 async function network() {
@@ -48,6 +49,25 @@ export async function GET(req: Request) {
         jobs: net.jobs.filter(j => j.poster.toLowerCase() === lc || j.taker.toLowerCase() === lc),
       })
     }
+    if (path === 'trust') {
+      const key = String(q.agent || q.name || q.address || '').trim()
+      if (!key) return json({ error: 'Pass ?agent=<name.ai or wallet address>.' }, 400)
+      const net = await network()
+      const a = findMember(net, key)
+      return json(trustReport(net, key, a ? await stillHolds(a) : null), 200, 20)
+    }
+    if (path.startsWith('card/')) {
+      const net = await network()
+      const a = findMember(net, decodeURIComponent(path.slice(5)))
+      if (!a) return json({ error: 'No Vouchverse member with that name or address.' }, 404)
+      return json(agentCard(net, a), 200, 60)
+    }
+    if (path.startsWith('badge/')) {
+      const key = decodeURIComponent(path.slice(6)).replace(/\.svg$/, '')
+      const net = await network()
+      const a = findMember(net, key) || null
+      return new Response(badgeSvg(a, key), { headers: { 'content-type': 'image/svg+xml; charset=utf-8', 'access-control-allow-origin': '*', 'cache-control': 'public, s-maxage=120, stale-while-revalidate=600' } })
+    }
     if (path === 'circles') return json((await network()).circles)
     if (path.startsWith('circle/')) {
       const id = Number(path.slice(7))
@@ -74,7 +94,7 @@ export async function GET(req: Request) {
       if (input.action === 'join' && q.label) input.label = q.label
       return json({ ...buildAction(input), tokenId: input.action === 'join' && input.label ? tokenIdOf(String(input.label).replace(/\.ai$/, '')) : undefined }, 200, 0)
     }
-    return json({ error: 'Unknown endpoint.', endpoints: ['/api/health', '/api/state', '/api/agent/<name>', '/api/circles', '/api/circle/<id>', '/api/jobs', '/api/leaderboard', '/api/calldata?action=...'] }, 404)
+    return json({ error: 'Unknown endpoint.', endpoints: ['/api/health', '/api/state', '/api/trust?agent=<name.ai or address>', '/api/card/<name>', '/api/badge/<name>', '/api/agent/<name>', '/api/circles', '/api/circle/<id>', '/api/jobs', '/api/leaderboard', '/api/calldata?action=...'] }, 404)
   } catch (e) {
     if (e instanceof ActionError) return json({ error: e.message }, 400)
     return json({ error: 'Could not read BNB Chain right now. Try again in a few seconds.', detail: String((e as Error)?.message || e).slice(0, 200) }, 502)

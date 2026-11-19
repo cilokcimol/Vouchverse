@@ -28,7 +28,7 @@ export function until(sec: number) {
 export const bnb = (x: string | number) => {
   const v = Number(x)
   if (!v) return '0'
-  if (v < 0.001) return v.toFixed(5)
+  if (v < 0.001) return v.toFixed(6).replace(/0+$/, '').replace(/\.$/, '')
   if (v < 1) return v.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')
   return v.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')
 }

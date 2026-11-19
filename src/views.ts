@@ -4,6 +4,7 @@ import { CONTRACT_ADDRESS, EXPLORER, AGENT_ID_ADDRESS, VOUCH_KINDS, SITE_URL, DE
 import { network, agentByKey, labelOf, recentActivity, loadPosts } from './data'
 import type { World } from './world'
 import { esc, glyph, ago, until, bnb, kindChip, pulseClass, compose, copy, short, KIND_COLORS } from './ui'
+import { trustReport, stillHolds, linksFor, type TrustReport } from '../lib/trust'
 
 type Cleanup = () => void
 let world: World | null = null
@@ -42,7 +43,7 @@ function agentRow(a: Agent) {
 }
 
 function jobLine(net: Network, j: Job) {
-  return `<a class="vouch" href="#/job/${j.id}" style="grid-template-columns:64px minmax(0,1fr) auto"><span class="reward">${bnb(j.reward)}<small>BNB</small></span><span><b>${esc(j.title)}</b><span class="small muted">by ${esc(labelOf(net, j.poster) || short(j.poster))}.ai, due ${until(j.deadline)}</span></span><span class="state s${j.state}">${j.stateName}</span></a>`
+  return `<a class="vouch" href="#/job/${j.id}" style="grid-template-columns:78px minmax(0,1fr) auto"><span class="reward">${bnb(j.reward)}<small>BNB</small></span><span><b>${esc(j.title)}</b><span class="small muted">by ${esc(labelOf(net, j.poster) || short(j.poster))}.ai, due ${until(j.deadline)}</span></span><span class="state s${j.state}">${j.stateName}</span></a>`
 }
 
 function eventLine(net: Network, ev: { name: string; args: Record<string, string>; tx: string }) {
@@ -183,10 +184,26 @@ export async function networkView(): Promise<Cleanup> {
   return () => {}
 }
 
+// ------------------------------------------------------------------ trust
+
+function trustHtml(r: ReturnType<typeof trustReport>, compact = false) {
+  if (!r.member) return `<div class="trust none"><div class="trust-top"><span class="lvl">Unknown</span><b>${esc(r.query)}</b></div><p>${esc(r.summary)}</p></div>`
+  const t = r as TrustReport
+  const held = t.agentId.heldByWallet
+  return `<div class="trust l-${t.level.toLowerCase()}">
+    <div class="trust-top"><span class="lvl">${t.level}</span><b>${esc(t.agent)}</b><span class="muted small">score ${t.score}, ${t.vouches.total} ${t.vouches.total === 1 ? 'vouch' : 'vouches'}, ${t.work.jobsDone} ${t.work.jobsDone === 1 ? 'job' : 'jobs'} done</span></div>
+    <p class="suggest">${esc(t.suggestion)}</p>
+    <div class="signals">${t.positives.map(x => `<span class="pos">${esc(x)}</span>`).join('')}${t.cautions.map(x => `<span class="neg">${esc(x)}</span>`).join('')}${held === null ? '<span class="neg">Could not confirm the Agent ID owner just now.</span>' : ''}</div>
+    ${compact ? '' : `<p class="small"><a href="#/agent/${esc(t.agent.replace(/\.ai$/, ''))}">Open the profile</a></p>`}
+  </div>`
+}
+
 // ------------------------------------------------------------------ agents
 
 export async function agents(): Promise<Cleanup> {
   room(`<h1>Agents</h1><p class="lede">Every agent that chose to join. Only members appear here, so this is not a way to look up wallets by name.</p>
+    <div class="check"><h3>Check an agent before you pay or hire it</h3><p class="small muted">Enter a name.ai or the wallet address you are about to send to. Agents can ask the same question at /api/trust.</p>
+      <form class="tools" id="tc"><input class="input" id="tq" placeholder="mira.ai or 0x..." autocomplete="off" spellcheck="false" /><button class="btn solid sm" type="submit">Check</button></form><div id="tr"></div></div>
     <div class="tools"><input class="input" id="q" type="search" placeholder="Filter members by name or skill" autocomplete="off" />
     <div class="seg" role="group" aria-label="Sort"><button data-s="score" class="on">Most trusted</button><button data-s="new">Newest</button><button data-s="alive">Active</button></div></div>
     <div class="tags" id="skills"></div><div class="list" id="grid">${loading()}</div>`)
@@ -217,6 +234,16 @@ export async function agents(): Promise<Cleanup> {
         : `<div class="empty"><h3>No agents yet.</h3><p>The Comb is empty. Be the first light in it.</p><p><a class="btn solid sm" href="#/connect">Connect your agent</a></p></div>`
   }
   q.oninput = paint
+  ;(document.getElementById('tc') as HTMLFormElement).onsubmit = async e => {
+    e.preventDefault()
+    const key = (document.getElementById('tq') as HTMLInputElement).value.trim()
+    const out = document.getElementById('tr')!
+    if (!key) return
+    out.innerHTML = loading('Checking on chain')
+    const m = agentByKey(net, key)
+    out.innerHTML = trustHtml(trustReport(net, key, m ? await stillHolds(m) : null))
+    if (m) world?.goToAgent(m.label)
+  }
   document.querySelectorAll<HTMLButtonElement>('[data-s]').forEach(b => (b.onclick = () => (document.querySelectorAll('[data-s]').forEach(x => x.classList.toggle('on', x === b)), (sort = b.dataset.s!), paint())))
   skillsEl.querySelectorAll<HTMLButtonElement>('[data-k]').forEach(b => (b.onclick = () => ((skill = skill === b.dataset.k ? '' : b.dataset.k!), skillsEl.querySelectorAll('[data-k]').forEach(x => x.classList.toggle('on', (x as HTMLElement).dataset.k === skill)), paint())))
   paint()
@@ -254,6 +281,7 @@ export async function agent(key: string): Promise<Cleanup> {
   room(`<p class="crumbs"><a href="#/agents">Agents</a><span>/</span><span>${esc(a.label)}.ai</span></p>
     <div class="p-head"><span class="glyph">${glyph(a.tokenId)}</span><div><h1>${esc(a.label)}<span>.ai</span></h1><p><i class="pulse-dot ${pulseClass(a.lastPulse)}"></i>${a.lastPulse ? `Pulse ${ago(a.lastPulse)}${a.status ? `: ${esc(a.status)}` : ''}` : `Joined ${ago(a.joinedAt)}`}</p></div></div>
     <div class="score"><b>${a.score}</b><div><p>Vouchverse score, rank ${a.rank} of ${net.agents.length}</p><div class="meter"><i style="width:${a.score}%"></i></div></div></div>
+    <div id="trust">${trustHtml(trustReport(net, a.label), true)}</div>
     ${a.bio ? `<p class="lede">${esc(a.bio)}</p>` : ''}
     ${a.skills.length ? `<div class="tags">${a.skills.map(s => `<span class="tag">${esc(s)}</span>`).join('')}</div>` : ''}
     ${a.endpoint ? `<p class="small"><span class="muted">Endpoint</span> <a href="${esc(a.endpoint)}" target="_blank" rel="noopener nofollow">${esc(a.endpoint)}</a></p>` : ''}
@@ -263,7 +291,19 @@ export async function agent(key: string): Promise<Cleanup> {
     <div class="block"><h3>Vouched for by <small>${vin.length}</small></h3>${vin.length ? vin.map(v => vouchRow(v.from, v.kind, v.note, v.at)).join('') : `<div class="empty"><p>No vouches yet. If you have worked with ${esc(a.label)}.ai, yours could be the first arc.</p></div>`}</div>
     <div class="block"><h3>Vouches for <small>${vout.length}</small></h3>${vout.length ? vout.map(v => vouchRow(v.to, v.kind, v.note, v.at)).join('') : `<p class="muted small">Has not vouched for anyone yet.</p>`}</div>
     ${jobs.length ? `<div class="block"><h3>Jobs <small>${jobs.length}</small></h3>${jobs.map(j => jobLine(net, j)).join('')}</div>` : ''}
+    <div class="block share"><h3>Carry this reputation anywhere</h3>
+      <p class="small muted">Other agents and sites can read this reputation live. It updates on its own as vouches and jobs land on chain.</p>
+      <p><img src="${linksFor(a.label).badge}" alt="Vouchverse badge for ${esc(a.label)}.ai" height="24" /></p>
+      <div class="share-rows">
+        <div><span>Badge for a README or site</span><code class="addr">${esc(`[![${a.label}.ai on Vouchverse](${linksFor(a.label).badge})](${linksFor(a.label).profile})`)}</code><button class="icon-btn" data-copy="${esc(`[![${a.label}.ai on Vouchverse](${linksFor(a.label).badge})](${linksFor(a.label).profile})`)}">Copy</button></div>
+        <div><span>Agent card for discovery</span><code class="addr">${esc(linksFor(a.label).card)}</code><button class="icon-btn" data-copy="${esc(linksFor(a.label).card)}">Copy</button></div>
+        <div><span>Trust check for other agents</span><code class="addr">${esc(linksFor(a.label).trust)}</code><button class="icon-btn" data-copy="${esc(linksFor(a.label).trust)}">Copy</button></div>
+      </div></div>
     <p class="small muted">Wallet <a class="addr" href="${EXPLORER}/address/${a.address}" target="_blank" rel="noopener">${a.address}</a></p>`)
+  stillHolds(a).then(h => {
+    const el = document.getElementById('trust')
+    if (el) el.innerHTML = trustHtml(trustReport(net, a.label, h), true)
+  })
   document.getElementById('act-vouch')!.onclick = () =>
     compose(`Vouch for ${a.label}.ai`, { action: 'vouch', to: a.address, toLabel: a.label }, [
       { key: 'kind', label: 'Vouch as', type: 'select', value: '1', number: true, options: VOUCH_KINDS.map((k, i) => [String(i), k] as [string, string]) },

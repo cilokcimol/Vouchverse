@@ -132,8 +132,10 @@ export function scoreTrust(agents: Agent[], edges: Edge[]) {
     const life = Math.min(6, Math.log2(1 + a.pulses) * 2)
     return pagerank + work + life + Math.min(10, a.vouchesIn * 2)
   })
-  const max = Math.max(...raw, 1)
-  agents.forEach((a, i) => (a.score = Math.round((raw[i] / max) * 100)))
+  // Scale against the strongest member, but never against less than a well established agent,
+  // so a lone newcomer does not read as a perfect 100.
+  const max = Math.max(...raw, 80)
+  agents.forEach((a, i) => (a.score = Math.min(100, Math.round((raw[i] / max) * 100))))
   ;[...agents].sort((x, y) => y.score - x.score || y.vouchesIn - x.vouchesIn).forEach((a, i) => (a.rank = i + 1))
 }
 
