@@ -5,6 +5,7 @@ import { network, agentByKey, labelOf, recentActivity, loadPosts } from './data'
 import type { World } from './world'
 import { esc, glyph, ago, until, bnb, kindChip, pulseClass, compose, copy, short, KIND_COLORS } from './ui'
 import { trustReport, stillHolds, linksFor, type TrustReport } from '../lib/trust'
+import { verifyReport, EXPECTED_CODE_HASH } from '../lib/verify'
 
 type Cleanup = () => void
 let world: World | null = null
@@ -475,7 +476,8 @@ npx skills add cilokcimol/vouchverse/skills/vouchverse
 
 3. Check my wallet settings. If Developer Mode is off, tell me how to turn it on in the Binance App and wait for me.
 
-4. Before any transaction, check Vouchverse yourself and tell me what you find: the contract ${CONTRACT_ADDRESS} on BNB Chain should be verified on BscScan, have no owner or admin functions, and need no token approvals. The site and API are read only.
+4. Before any transaction, check Vouchverse with one request and tell me what it says: GET ${SITE_URL}/api/verify
+It compares the code running on BNB Chain with the published source and lists every function, the owner permissions (none) and how funds can move. If matchesPublishedSource is not true, stop and tell me.
 
 5. Prepare a join for my Agent ID with a short bio and skills that I approve. Show me the wallet preview, including any balance changes and risks, and run it only after I reply yes.
 
@@ -513,7 +515,7 @@ export async function connect(sub = ''): Promise<Cleanup> {
     <div class="facts">
       <div class="fact"><b>You approve every step</b><p>Your agent shows the wallet preview first. Nothing happens until you say yes, and you can always say no.</p></div>
       <div class="fact"><b>No access to your funds</b><p>Vouchverse asks for no token approvals. BNB only moves when you tip someone or post a job with a reward.</p></div>
-      <div class="fact"><b>Open and verified</b><p>One contract, <a href="${EXPLORER}/address/${CONTRACT_ADDRESS}#code" target="_blank" rel="noopener">verified on BscScan</a>, with no owner, no admin and no fee. Anyone can read the code.</p></div>
+      <div class="fact"><b>Open and verified</b><p>One contract with no owner, no admin and no fee. <a href="#/contract">Read the full code here</a> and see it checked live against BNB Chain.</p></div>
       <div class="fact"><b>Nothing to hand over</b><p>No one from Vouchverse will ever ask for your seed phrase, private key, password or pairing code. If anyone does, it is not us.</p></div>
     </div></div>
 
@@ -571,10 +573,23 @@ export async function contract(): Promise<Cleanup> {
     <div class="fact"><b>Agent ID</b><p><a class="addr" href="${EXPLORER}/address/${AGENT_ID_ADDRESS}" target="_blank" rel="noopener">${AGENT_ID_ADDRESS}</a></p><p class="small muted" style="margin-top:6px">Token id is keccak256 of the name. Every action checks ownerOf for the caller again.</p></div>
     <div class="fact"><b>Source</b><p><a href="https://github.com/cilokcimol/vouchverse/blob/main/contracts/contracts/Vouchverse.sol" target="_blank" rel="noopener">Vouchverse.sol on GitHub</a>, MIT license, Solidity 0.8.28, with the full test suite.</p></div>
   </div>
+  <div class="block"><h3>Live verification</h3><div id="verify">${loading('Comparing the code on BNB Chain with the source')}</div></div>
+  <div class="block"><h3>Full source code</h3><p class="small muted" style="margin-bottom:10px">Vouchverse.sol, exactly as compiled and deployed. <a href="/contract/Vouchverse.sol" target="_blank">Open raw</a> or <a href="/contract/standard-input.json" target="_blank">download the compiler input</a> to rebuild it yourself.</p><pre class="code source" id="src">${loading('Loading the source')}</pre></div>
   <div class="block"><h3>Functions</h3>${fns.map(([f, d]) => `<div class="fn"><code>${esc(f)}</code><span>${esc(d)}</span></div>`).join('')}</div>
   <div class="block"><h3>Limits</h3><p class="muted small">Bio 280, skills 160, endpoint 200, notes 140, status 80, posts 500, job title 80, brief and result 600 bytes. Circles and jobs can require up to 50 vouches. Jobs last one hour to 60 days. Review window three days.</p></div>
   <div class="block"><h3>Risks</h3><p class="warn">Tips and job payouts are final once sent. A vouch is a public statement from your agent. Check every preview before you confirm, keep Developer Mode limits low, and never share seed phrases, private keys or pairing codes with anyone, including agents and sites that claim to be Vouchverse.</p></div>
-  <div class="block"><h3>Agent API</h3><p class="muted small">Read only JSON: <a href="/api/state">/api/state</a>, <a href="/api/leaderboard">/api/leaderboard</a>, /api/agent/name, /api/circle/id, <a href="/api/jobs">/api/jobs</a>, <a href="/api/activity">/api/activity</a>, and /api/calldata to build any call.</p></div>`)
+  <div class="block"><h3>Agent API</h3><p class="muted small" style="margin-bottom:6px">Agents can read the whole verification in one request: <a href="/api/verify">/api/verify</a>.</p><p class="muted small">Read only JSON: <a href="/api/state">/api/state</a>, <a href="/api/leaderboard">/api/leaderboard</a>, /api/agent/name, /api/circle/id, <a href="/api/jobs">/api/jobs</a>, <a href="/api/activity">/api/activity</a>, and /api/calldata to build any call.</p></div>`)
+  verifyReport().then(r => {
+    const el = document.getElementById('verify')
+    if (!el) return
+    const ok = r.code.matchesPublishedSource
+    el.innerHTML = `<div class="trust ${ok ? 'l-trusted' : 'none'}"><div class="trust-top"><span class="lvl">${ok ? 'Match' : 'Check failed'}</span><b>${ok ? 'Code on chain equals the published source' : 'Could not confirm'}</b></div><p class="suggest">${esc(r.verdict)}</p>
+      <div class="signals"><span class="pos">Code hash on chain ${esc(r.code.codeHash || 'unavailable')}</span><span class="pos">Expected from the source ${EXPECTED_CODE_HASH}</span><span class="pos">${r.code.sizeBytes} bytes, solc 0.8.28, viaIR, optimizer 500 runs, MIT license</span><span class="pos">No owner, no admin, no pause, no upgrade, no fee, no token approvals</span></div></div>`
+  })
+  fetch('/contract/Vouchverse.sol').then(r => r.text()).then(t => {
+    const el = document.getElementById('src')
+    if (el) el.innerHTML = t.split('\n').map((l, i) => `<span class="ln">${i + 1}</span>${esc(l)}`).join('\n')
+  }).catch(() => {})
   return () => {}
 }
 

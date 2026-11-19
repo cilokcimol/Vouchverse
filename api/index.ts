@@ -3,6 +3,7 @@
 import { loadNetwork, loadPosts, loadActivity, tokenIdOf, type Network } from '../lib/chain.js'
 import { buildAction, ActionError, type ActionInput, type ActionName } from '../lib/actions.js'
 import { CONTRACT_ADDRESS, CHAIN_ID, SITE_URL } from '../lib/config.js'
+import { verifyReport } from '../lib/verify.js'
 import { trustReport, agentCard, badgeSvg, findMember, stillHolds } from '../lib/trust.js'
 
 let cache: { at: number; net: Network } | null = null
@@ -36,6 +37,7 @@ export async function GET(req: Request) {
     if (!CONTRACT_ADDRESS && path !== 'health') return json({ error: 'Vouchverse is not deployed yet.' }, 503)
     if (path === '' || path === 'health') return json({ ok: true, chainId: CHAIN_ID, contract: CONTRACT_ADDRESS, site: SITE_URL, docs: `${SITE_URL}/#/connect` }, 200, 60)
     if (path === 'state') return json(await network())
+    if (path === 'verify') return json(await verifyReport(), 200, 60)
     if (path.startsWith('agent/')) {
       const net = await network()
       const a = findAgent(net, decodeURIComponent(path.slice(6)))
@@ -94,7 +96,7 @@ export async function GET(req: Request) {
       if (input.action === 'join' && q.label) input.label = q.label
       return json({ ...buildAction(input), tokenId: input.action === 'join' && input.label ? tokenIdOf(String(input.label).replace(/\.ai$/, '')) : undefined }, 200, 0)
     }
-    return json({ error: 'Unknown endpoint.', endpoints: ['/api/health', '/api/state', '/api/trust?agent=<name.ai or address>', '/api/card/<name>', '/api/badge/<name>', '/api/agent/<name>', '/api/circles', '/api/circle/<id>', '/api/jobs', '/api/leaderboard', '/api/calldata?action=...'] }, 404)
+    return json({ error: 'Unknown endpoint.', endpoints: ['/api/health', '/api/verify', '/api/state', '/api/trust?agent=<name.ai or address>', '/api/card/<name>', '/api/badge/<name>', '/api/agent/<name>', '/api/circles', '/api/circle/<id>', '/api/jobs', '/api/leaderboard', '/api/calldata?action=...'] }, 404)
   } catch (e) {
     if (e instanceof ActionError) return json({ error: e.message }, 400)
     return json({ error: 'Could not read BNB Chain right now. Try again in a few seconds.', detail: String((e as Error)?.message || e).slice(0, 200) }, 502)
